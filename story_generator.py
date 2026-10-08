@@ -37,7 +37,6 @@ def try_gemini(prompt: str) -> str:
         
     genai.configure(api_key=api_key)
     
-    # Live API check: Get all valid models directly from Google
     valid_models = []
     try:
         for m in genai.list_models():
@@ -70,7 +69,6 @@ def try_groq(prompt: str) -> str:
         raise ValueError("GROQ_API_KEY missing")
         
     client = Groq(api_key=api_key)
-    # Most reliable current Groq endpoint
     groq_models = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
     
     for model_name in groq_models:
@@ -95,13 +93,11 @@ def try_groq(prompt: str) -> str:
 def generate_episode(bracket_input: str) -> str:
     full_prompt = f"{SYSTEM_PROMPT}\n\n[USER INPUT]:\n{bracket_input}"
     
-    # 1. Try Gemini first with dynamic model fetching
     try:
         return try_gemini(full_prompt)
     except Exception as e:
         print(f"⚠️ Gemini failed: {e}. Switching to Groq...")
 
-    # 2. Try Groq as backup
     try:
         return try_groq(full_prompt)
     except Exception as e:

@@ -1,5 +1,5 @@
 import os
-from groq import Groq
+import google.generativeai as genai
 
 SYSTEM_PROMPT = """
 तुम एक अनुभवी प्रोफेशनल हिंदी ऑडियो-सीरीज़ लेखक, कहानीकार, स्क्रीनराइटर और स्टोरी एडिटर हो।
@@ -24,41 +24,27 @@ RULES
 ━━━━━━━━━━━━━━━━━━
 OUTPUT FORMAT
 ━━━━━━━━━━━━━━━━━━
-एपिसोड [नंबर]: [आकिसर्षक हिंदी शीर्षक]
+एपिसोड [नंबर]: [आकर्षक हिंदी शीर्षक]
 
 (इसके बाद सीधे 2000+ शब्दों की कहानी शुरू करो।)
 """
 
 def generate_episode(bracket_input: str) -> str:
-    api_key = os.environ.get("GROQ_API_KEY")
+    api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError("GROQ_API_KEY environment variable is missing!")
-        
-    client = Groq(api_key=api_key)
+        raise ValueError("GEMINI_API_KEY is missing from environment variables!")
+
+    genai.configure(api_key=api_key)
+
+    # Official v1 stable model declaration
+    model = genai.GenerativeModel("gemini-1.5-flash")
+
     full_prompt = f"{SYSTEM_PROMPT}\n\n[USER INPUT]:\n{bracket_input}"
     
-    # Active Groq models list
-    models_to_try = [
-        "llama-3.1-8b-instant",
-        "llama-3.3-70b-versatile"
-    ]
+    print("Generating story with Gemini 1.5 Flash...")
+    response = model.generate_content(full_prompt)
     
-    for model_name in models_to_try:
-        try:
-            print(f"Executing request with Groq model: {model_name}...")
-            chat_completion = client.chat.completions.create(
-                messages=[{"role": "user", "content": full_prompt}],
-                model=model_name,
-                temperature=0.7,
-                max_tokens=4096,
-            )
-            print(f"Successfully generated script with model {model_name}!")
-            return chat_completion.choices[0].message.content
-        except Exception as e:
-            print(f"Skipping {model_name} due to error: {e}")
-            continue
-            
-    raise RuntimeError("All active Groq models failed to execute.")
+    return response.text
 
 if __name__ == "__main__":
     test_input = "[सम्राट राय रायज़ादा अपने कमरे में बैठकर नोवेल का आखिरी चैप्टर खत्म करता है और अचानक आसमान लाल हो जाता है तथा सिस्टम रियल वर्ल्ड में लागू होने लगता है]"

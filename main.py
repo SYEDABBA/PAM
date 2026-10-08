@@ -1,4 +1,9 @@
+import sys
 import os
+
+# Python path fix (ModuleNotFoundError solution)
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from scripts.story_generator import generate_episode
 from scripts.sherpa_poster import post_to_sherpa
 

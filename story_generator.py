@@ -37,31 +37,27 @@ def try_gemini(prompt: str) -> str:
         
     genai.configure(api_key=api_key)
     
-    valid_models = []
-    try:
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                valid_models.append(m.name)
-        print(f"Fetched Active Gemini Models: {valid_models}")
-    except Exception as e:
-        print(f"Error listing Gemini models: {e}")
-
-    if not valid_models:
-        valid_models = ["models/gemini-1.5-flash", "models/gemini-1.5-pro"]
-
-    for model_name in valid_models:
+    # Priority list of top reliable Gemini models
+    preferred_models = [
+        "models/gemini-2.0-flash",
+        "models/gemini-1.5-flash",
+        "models/gemini-1.5-pro",
+        "models/gemini-1.0-pro"
+    ]
+    
+    for model_name in preferred_models:
         try:
             print(f"Trying Gemini Model: {model_name}...")
             model = genai.GenerativeModel(model_name)
             response = model.generate_content(prompt)
-            if response and response.text:
+            if response and response.text and len(response.text.strip()) > 200:
                 print(f"✅ Success with Gemini model: {model_name}")
                 return response.text
         except Exception as e:
             print(f"❌ Gemini {model_name} failed: {e}")
             continue
             
-    raise RuntimeError("All dynamic Gemini models failed")
+    raise RuntimeError("All preferred Gemini models failed")
 
 def try_groq(prompt: str) -> str:
     api_key = os.environ.get("GROQ_API_KEY")
@@ -69,7 +65,7 @@ def try_groq(prompt: str) -> str:
         raise ValueError("GROQ_API_KEY missing")
         
     client = Groq(api_key=api_key)
-    groq_models = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
+    groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
     
     for model_name in groq_models:
         try:
@@ -81,7 +77,7 @@ def try_groq(prompt: str) -> str:
                 max_tokens=4096
             )
             res = completion.choices[0].message.content
-            if res:
+            if res and len(res.strip()) > 200:
                 print(f"✅ Success with Groq model: {model_name}")
                 return res
         except Exception as e:
@@ -93,15 +89,17 @@ def try_groq(prompt: str) -> str:
 def generate_episode(bracket_input: str) -> str:
     full_prompt = f"{SYSTEM_PROMPT}\n\n[USER INPUT]:\n{bracket_input}"
     
-    try:
-        return try_gemini(full_prompt)
-    except Exception as e:
-        print(f"⚠️ Gemini failed: {e}. Switching to Groq...")
-
+    # 1. Groq pehle try karenge (bohot fast hai)
     try:
         return try_groq(full_prompt)
     except Exception as e:
-        print(f"⚠️ Groq failed: {e}")
+        print(f"⚠️ Groq failed: {e}. Switching to Gemini...")
+
+    # 2. Gemini fallback
+    try:
+        return try_gemini(full_prompt)
+    except Exception as e:
+        print(f"⚠️ Gemini failed: {e}")
 
     raise RuntimeError("🚨 All AI APIs failed. Check API Keys in GitHub Secrets.")
 

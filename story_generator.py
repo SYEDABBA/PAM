@@ -41,7 +41,7 @@ def generate_episode(bracket_input: str) -> str:
                 "content": full_prompt,
             }
         ],
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
     )
     
     return chat_completion.choices[0].message.content

@@ -1,5 +1,5 @@
 import os
-import google.generativeai as genai
+from groq import Groq
 
 SYSTEM_PROMPT = """
 तुम एक अनुभवी प्रोफेशनल हिंदी ऑडियो-सीरीज़ लेखक, कहानीकार, स्क्रीनराइटर और स्टोरी एडिटर हो।
@@ -30,17 +30,21 @@ OUTPUT FORMAT
 """
 
 def generate_episode(bracket_input: str) -> str:
-    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-    
-    # Updated direct model identifiers
-    try:
-        model = genai.GenerativeModel("models/gemini-1.5-flash")
-    except Exception:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
     
     full_prompt = f"{SYSTEM_PROMPT}\n\n[USER INPUT]:\n{bracket_input}"
-    response = model.generate_content(full_prompt)
-    return response.text
+    
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": full_prompt,
+            }
+        ],
+        model="llama-3.3-70b-versatile",
+    )
+    
+    return chat_completion.choices[0].message.content
 
 if __name__ == "__main__":
     test_input = "[सम्राट राय रायज़ादा अपने कमरे में बैठकर नोवेल का आखिरी चैप्टर खत्म करता है और अचानक आसमान लाल हो जाता है तथा सिस्टम रियल वर्ल्ड में लागू होने लगता है]"

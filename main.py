@@ -1,11 +1,9 @@
-import sys
 import os
+import sys
 
-# Python path fix (ModuleNotFoundError solution)
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from scripts.story_generator import generate_episode
-from scripts.sherpa_poster import post_to_sherpa
+# Direct import execution (Kyunki saari files root me hain)
+from story_generator import generate_episode
+from sherpa_poster import post_to_sherpa
 
 def main():
     print("--- Starting PAM Pipeline ---")

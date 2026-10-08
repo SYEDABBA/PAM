@@ -24,37 +24,41 @@ RULES
 ━━━━━━━━━━━━━━━━━━
 OUTPUT FORMAT
 ━━━━━━━━━━━━━━━━━━
-एपिसोड [नंबर]: [आकर्षक हिंदी शीर्षक]
+एपिसोड [नंबर]: [आकिसर्षक हिंदी शीर्षक]
 
 (इसके बाद सीधे 2000+ शब्दों की कहानी शुरू करो।)
 """
 
 def generate_episode(bracket_input: str) -> str:
-    client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY environment variable is missing!")
+        
+    client = Groq(api_key=api_key)
     full_prompt = f"{SYSTEM_PROMPT}\n\n[USER INPUT]:\n{bracket_input}"
     
-    # Active Groq models list with automatic fallback
+    # Active Groq models list
     models_to_try = [
-        "llama-3.3-70b-versatile",
-        "llama3-70b-8192",
-        "llama3-8b-8192",
-        "mixtral-8x7b-32768"
+        "llama-3.1-8b-instant",
+        "llama-3.3-70b-versatile"
     ]
     
     for model_name in models_to_try:
         try:
-            print(f"Trying Groq model: {model_name}...")
+            print(f"Executing request with Groq model: {model_name}...")
             chat_completion = client.chat.completions.create(
                 messages=[{"role": "user", "content": full_prompt}],
                 model=model_name,
+                temperature=0.7,
+                max_tokens=4096,
             )
-            print(f"Successfully generated using {model_name}!")
+            print(f"Successfully generated script with model {model_name}!")
             return chat_completion.choices[0].message.content
         except Exception as e:
-            print(f"Failed with {model_name}: {e}")
+            print(f"Skipping {model_name} due to error: {e}")
             continue
             
-    raise Exception("All Groq models failed to generate response.")
+    raise RuntimeError("All active Groq models failed to execute.")
 
 if __name__ == "__main__":
     test_input = "[सम्राट राय रायज़ादा अपने कमरे में बैठकर नोवेल का आखिरी चैप्टर खत्म करता है और अचानक आसमान लाल हो जाता है तथा सिस्टम रियल वर्ल्ड में लागू होने लगता है]"

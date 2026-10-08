@@ -30,17 +30,14 @@ OUTPUT FORMAT
 """
 
 def generate_episode(bracket_input: str) -> str:
-    # Use environment variable for API Key
     genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    # Fixed model name here
+    model = genai.GenerativeModel("gemini-1.5-flash")
     
     full_prompt = f"{SYSTEM_PROMPT}\n\n[USER INPUT]:\n{bracket_input}"
     response = model.generate_content(full_prompt)
     return response.text
 
 if __name__ == "__main__":
-    test_input = "[सम्राट राय रायज़ादा अपने कमरे में बैठकर उस मैनवा का आखिरी चैप्टर खत्म करता है और अचानक बाहर आसमान लाल हो जाता है और नोवेल रियल होने लगती है]"
-    print("Generating Episode 1...")
-    story_text = generate_episode(test_input)
-    print("Generation Done! Preview:\n")
-    print(story_text[:300] + "...")
+    test_input = "[सम्राट राय रायज़ादा अपने कमरे में बैठकर नोवेल का आखिरी चैप्टर खत्म करता है और अचानक आसमान लाल हो जाता है तथा सिस्टम रियल वर्ल्ड में लागू होने लगता है]"
+    print(generate_episode(test_input))

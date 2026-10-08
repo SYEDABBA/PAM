@@ -31,8 +31,12 @@ OUTPUT FORMAT
 
 def generate_episode(bracket_input: str) -> str:
     genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-    # Fixed model name here
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    
+    # Updated direct model identifiers
+    try:
+        model = genai.GenerativeModel("models/gemini-1.5-flash")
+    except Exception:
+        model = genai.GenerativeModel("gemini-1.5-flash")
     
     full_prompt = f"{SYSTEM_PROMPT}\n\n[USER INPUT]:\n{bracket_input}"
     response = model.generate_content(full_prompt)

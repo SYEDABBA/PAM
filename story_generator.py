@@ -30,42 +30,17 @@ OUTPUT FORMAT
 (इसके बाद सीधे 2000+ शब्दों की कहानी शुरू करो।)
 """
 
-def try_gemini(prompt: str) -> str:
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY missing")
-        
-    genai.configure(api_key=api_key)
-    
-    # Priority list of top reliable Gemini models
-    preferred_models = [
-        "models/gemini-2.0-flash",
-        "models/gemini-1.5-flash",
-        "models/gemini-1.5-pro",
-        "models/gemini-1.0-pro"
-    ]
-    
-    for model_name in preferred_models:
-        try:
-            print(f"Trying Gemini Model: {model_name}...")
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
-            if response and response.text and len(response.text.strip()) > 200:
-                print(f"✅ Success with Gemini model: {model_name}")
-                return response.text
-        except Exception as e:
-            print(f"❌ Gemini {model_name} failed: {e}")
-            continue
-            
-    raise RuntimeError("All preferred Gemini models failed")
-
 def try_groq(prompt: str) -> str:
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        raise ValueError("GROQ_API_KEY missing")
+        raise ValueError("GROQ_API_KEY is missing in environment variables.")
         
     client = Groq(api_key=api_key)
-    groq_models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    groq_models = [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "mixtral-8x7b-32768"
+    ]
     
     for model_name in groq_models:
         try:
@@ -77,31 +52,70 @@ def try_groq(prompt: str) -> str:
                 max_tokens=4096
             )
             res = completion.choices[0].message.content
-            if res and len(res.strip()) > 200:
+            if res and len(res.strip()) > 100:
                 print(f"✅ Success with Groq model: {model_name}")
                 return res
         except Exception as e:
             print(f"❌ Groq {model_name} failed: {e}")
             continue
             
-    raise RuntimeError("All Groq models failed")
+    raise RuntimeError("All Groq models failed.")
+
+def try_gemini(prompt: str) -> str:
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY is missing in environment variables.")
+        
+    genai.configure(api_key=api_key)
+    
+    # Static fallbacks without prefix issues
+    fallback_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
+    active_models = []
+    
+    try:
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                clean_name = m.name.replace("models/", "")
+                # Skip TTS/Audio specialized models that break text generation
+                if "tts" not in clean_name and "audio" not in clean_name:
+                    active_models.append(clean_name)
+    except Exception as e:
+        print(f"Warning fetching models: {e}")
+        
+    # Merge dynamically fetched models with fallback list
+    candidate_models = list(dict.fromkeys(active_models + fallback_models))
+    print(f"Candidate Gemini Models to try: {candidate_models}")
+
+    for model_name in candidate_models:
+        try:
+            print(f"Trying Gemini Model: {model_name}...")
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(prompt)
+            if response and response.text and len(response.text.strip()) > 100:
+                print(f"✅ Success with Gemini model: {model_name}")
+                return response.text
+        except Exception as e:
+            print(f"❌ Gemini {model_name} failed: {e}")
+            continue
+            
+    raise RuntimeError("All Gemini models failed.")
 
 def generate_episode(bracket_input: str) -> str:
     full_prompt = f"{SYSTEM_PROMPT}\n\n[USER INPUT]:\n{bracket_input}"
     
-    # 1. Groq pehle try karenge (bohot fast hai)
+    # 1. Groq Try karo
     try:
         return try_groq(full_prompt)
     except Exception as e:
         print(f"⚠️ Groq failed: {e}. Switching to Gemini...")
 
-    # 2. Gemini fallback
+    # 2. Gemini Try karo
     try:
         return try_gemini(full_prompt)
     except Exception as e:
         print(f"⚠️ Gemini failed: {e}")
 
-    raise RuntimeError("🚨 All AI APIs failed. Check API Keys in GitHub Secrets.")
+    raise RuntimeError("🚨 ALL AI Models failed! Check your API keys in GitHub Secrets.")
 
 if __name__ == "__main__":
     test_input = "[सम्राट राय रायज़ादा अपने कमरे में बैठकर नोवेल का आखिरी चैप्टर खत्म करता है और अचानक आसमान लाल हो जाता है तथा सिस्टम रियल वर्ल्ड में लागू होने लगता है]"

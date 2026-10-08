@@ -1,6 +1,6 @@
 import os
-import google.generativeai as genai
 from groq import Groq
+from google import genai
 
 SYSTEM_PROMPT = """
 तुम एक अनुभवी प्रोफेशनल हिंदी ऑडियो-सीरीज़ लेखक, कहानीकार, स्क्रीनराइटर और स्टोरी एडिटर हो।
@@ -33,13 +33,12 @@ OUTPUT FORMAT
 def try_groq(prompt: str) -> str:
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
-        raise ValueError("GROQ_API_KEY not found")
+        raise ValueError("GROQ_API_KEY is missing!")
         
     client = Groq(api_key=api_key)
     groq_models = [
         "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
-        "gemma2-9b-it"
+        "llama-3.1-8b-instant"
     ]
     
     for model_name in groq_models:
@@ -64,26 +63,18 @@ def try_groq(prompt: str) -> str:
 def try_gemini(prompt: str) -> str:
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError("GEMINI_API_KEY not found")
+        raise ValueError("GEMINI_API_KEY is missing!")
         
-    genai.configure(api_key=api_key)
-    
-    # Dynamic Listing + Fallbacks
-    gemini_models = []
-    try:
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                gemini_models.append(m.name)
-    except Exception as e:
-        print(f"Warning listing Gemini models: {e}")
-        
-    gemini_models += ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
+    client = genai.Client(api_key=api_key)
+    gemini_models = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
     
     for model_name in gemini_models:
         try:
             print(f"Trying Gemini Model: {model_name}...")
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+            )
             if response.text and len(response.text.strip()) > 100:
                 print(f"✅ Success with Gemini ({model_name})!")
                 return response.text
@@ -96,19 +87,19 @@ def try_gemini(prompt: str) -> str:
 def generate_episode(bracket_input: str) -> str:
     full_prompt = f"{SYSTEM_PROMPT}\n\n[USER INPUT]:\n{bracket_input}"
     
-    # Step 1: Try Groq
+    # 1. Groq Try karo
     try:
         return try_groq(full_prompt)
     except Exception as e:
-        print(f"⚠️ Groq Provider completely failed: {e}. Switching to Gemini...")
+        print(f"⚠️ Groq Provider failed: {e}. Switching to Gemini...")
 
-    # Step 2: Try Gemini
+    # 2. Gemini Fallback Try karo
     try:
         return try_gemini(full_prompt)
     except Exception as e:
-        print(f"⚠️ Gemini Provider completely failed: {e}.")
+        print(f"⚠️ Gemini Provider failed: {e}.")
 
-    raise RuntimeError("🚨 ALL AI Providers and Models failed! Check your API Keys in Github Secrets.")
+    raise RuntimeError("🚨 ALL AI Models failed! Please check your API Keys.")
 
 if __name__ == "__main__":
     test_input = "[सम्राट राय रायज़ादा अपने कमरे में बैठकर नोवेल का आखिरी चैप्टर खत्म करता है और अचानक आसमान लाल हो जाता है तथा सिस्टम रियल वर्ल्ड में लागू होने लगता है]"

@@ -29,7 +29,7 @@ def generate_episode(prompt_text: str) -> str:
 
     full_prompt = f"{SYSTEM_PROMPT}\n\n[एपिसोड निर्देश]:\n{prompt_text}"
 
-    # Priority 1: Groq
+    # Priority 1: Groq (Llama 3.3 70B)
     if groq_api_key:
         try:
             client = Groq(api_key=groq_api_key)
@@ -46,22 +46,23 @@ def generate_episode(prompt_text: str) -> str:
         except Exception as e:
             print(f"[DEBUG_ERROR] Groq API Failed: {e}", file=sys.stderr)
 
-    # Priority 2: Gemini
+    # Priority 2: Gemini (2.5 Flash / 1.5 Flash Fallback)
     if gemini_api_key:
-        try:
-            client = genai.Client(api_key=gemini_api_key)
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=full_prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.7,
-                    max_output_tokens=8192
+        for model_name in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+            try:
+                client = genai.Client(api_key=gemini_api_key)
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=full_prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.7,
+                        max_output_tokens=8192
+                    )
                 )
-            )
-            if response and response.text:
-                print("Successfully generated episode via Gemini!")
-                return response.text.strip()
-        except Exception as e:
-            print(f"[DEBUG_ERROR] Gemini API Failed: {e}", file=sys.stderr)
+                if response and response.text:
+                    print(f"Successfully generated episode via Gemini ({model_name})!")
+                    return response.text.strip()
+            except Exception as e:
+                print(f"[DEBUG_ERROR] Gemini API ({model_name}) Failed: {e}", file=sys.stderr)
 
-    raise RuntimeError("All AI models failed to generate episode.")
+    raise RuntimeError("All AI models (Groq and Gemini) failed to generate episode.")

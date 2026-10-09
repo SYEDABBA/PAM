@@ -4,7 +4,6 @@ from google import genai
 from google.genai import types
 from groq import Groq
 
-# Pocket FM Strict Guidelines Prompt
 SYSTEM_PROMPT = """
 तुम एक अनुभवी प्रोफेशनल हिंदी ऑडियो-सीरीज़ लेखक हो।
 तुम्हें ऑडियो-सीरीज़ "कहानी का जादू" (Kahani Ka Jaadoo) के लिए रोज़ाना 2 एपिसोड लिखने हैं।
@@ -23,6 +22,11 @@ def generate_episode(prompt_text: str) -> str:
     groq_api_key = os.environ.get("GROQ_API_KEY")
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
+    if not groq_api_key:
+        print("[Debug] GROQ_API_KEY is missing or empty in Environment!", file=sys.stderr)
+    if not gemini_api_key:
+        print("[Debug] GEMINI_API_KEY is missing or empty in Environment!", file=sys.stderr)
+
     full_prompt = f"{SYSTEM_PROMPT}\n\n[एपिसोड निर्देश]:\n{prompt_text}"
 
     # Priority 1: Try Groq First
@@ -40,9 +44,9 @@ def generate_episode(prompt_text: str) -> str:
                 print("Successfully generated episode via Groq!")
                 return res.strip()
         except Exception as e:
-            print(f"[Warning] Groq Generation Failed: {e}", file=sys.stderr)
+            print(f"[Error] Groq Failed: {e}", file=sys.stderr)
 
-    # Priority 2: Fallback to New Gemini SDK (google-genai)
+    # Priority 2: Fallback to New Gemini SDK
     if gemini_api_key:
         try:
             client = genai.Client(api_key=gemini_api_key)
@@ -55,9 +59,9 @@ def generate_episode(prompt_text: str) -> str:
                 )
             )
             if response and response.text:
-                print("Successfully generated episode via Gemini 2.5 Flash!")
+                print("Successfully generated episode via Gemini!")
                 return response.text.strip()
         except Exception as e:
-            print(f"[Warning] Gemini Generation Failed: {e}", file=sys.stderr)
+            print(f"[Error] Gemini Failed: {e}", file=sys.stderr)
 
     raise RuntimeError("All AI models (Groq and Gemini) failed to generate episode. Check API Keys.")

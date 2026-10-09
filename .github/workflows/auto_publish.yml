@@ -2,7 +2,7 @@ name: Publish Episode
 
 on:
   schedule:
-    - cron: '0 4 * * *'  # Daily at 4:00 AM UTC
+    - cron: '0 4 * * *'  # Daily schedule
   workflow_dispatch:
 
 jobs:

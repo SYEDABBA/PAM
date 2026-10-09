@@ -23,9 +23,9 @@ def generate_episode(prompt_text: str) -> str:
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
     if not groq_api_key:
-        print("[Debug] GROQ_API_KEY is missing or empty in Environment!", file=sys.stderr)
+        print("[Debug] GROQ_API_KEY is missing in Environment!", file=sys.stderr)
     if not gemini_api_key:
-        print("[Debug] GEMINI_API_KEY is missing or empty in Environment!", file=sys.stderr)
+        print("[Debug] GEMINI_API_KEY is missing in Environment!", file=sys.stderr)
 
     full_prompt = f"{SYSTEM_PROMPT}\n\n[एपिसोड निर्देश]:\n{prompt_text}"
 

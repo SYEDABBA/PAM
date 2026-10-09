@@ -1,7 +1,10 @@
 import os
+import sys
 from google import genai
+from google.genai import types
 from groq import Groq
 
+# Pocket FM Strict Guidelines Prompt
 SYSTEM_PROMPT = """
 तुम एक अनुभवी प्रोफेशनल हिंदी ऑडियो-सीरीज़ लेखक हो।
 तुम्हें ऑडियो-सीरीज़ "कहानी का जादू" (Kahani Ka Jaadoo) के लिए रोज़ाना 2 एपिसोड लिखने हैं।
@@ -22,7 +25,7 @@ def generate_episode(prompt_text: str) -> str:
 
     full_prompt = f"{SYSTEM_PROMPT}\n\n[एपिसोड निर्देश]:\n{prompt_text}"
 
-    # Try Groq First
+    # Priority 1: Try Groq First
     if groq_api_key:
         try:
             client = Groq(api_key=groq_api_key)
@@ -34,21 +37,27 @@ def generate_episode(prompt_text: str) -> str:
             )
             res = completion.choices[0].message.content
             if res and len(res.strip()) > 100:
-                return res
+                print("Successfully generated episode via Groq!")
+                return res.strip()
         except Exception as e:
-            print(f"Groq failed: {e}")
+            print(f"[Warning] Groq Generation Failed: {e}", file=sys.stderr)
 
-    # Fallback to New Gemini SDK (google-genai)
+    # Priority 2: Fallback to New Gemini SDK (google-genai)
     if gemini_api_key:
         try:
             client = genai.Client(api_key=gemini_api_key)
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=full_prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.7,
+                    max_output_tokens=8192
+                )
             )
             if response and response.text:
-                return response.text
+                print("Successfully generated episode via Gemini 2.5 Flash!")
+                return response.text.strip()
         except Exception as e:
-            print(f"Gemini failed: {e}")
+            print(f"[Warning] Gemini Generation Failed: {e}", file=sys.stderr)
 
-    raise RuntimeError("All AI models failed to generate episode.")
+    raise RuntimeError("All AI models (Groq and Gemini) failed to generate episode. Check API Keys.")

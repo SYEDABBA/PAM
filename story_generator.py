@@ -1,13 +1,12 @@
 import os
-import google.generativeai as genai
+from google import genai
 from groq import Groq
 
-# Strict system prompt aligned with Pocket FM guidelines
 SYSTEM_PROMPT = """
 तुम एक अनुभवी प्रोफेशनल हिंदी ऑडियो-सीरीज़ लेखक हो।
 तुम्हें ऑडियो-सीरीज़ "कहानी का जादू" (Kahani Ka Jaadoo) के लिए रोज़ाना 2 एपिसोड लिखने हैं।
 
- Pocket FM Guidelines Strict Rules:
+Pocket FM Guidelines Strict Rules:
 1. पूरी कहानी केवल 100% शुद्ध देवनागरी हिंदी लिपि में होनी चाहिए।
 2. एक भी अंग्रेजी अक्षर (A-Z) या रोमन शब्द का प्रयोग बिल्कुल न करें।
 3. किसी भी प्रकार के साउंड इफेक्ट्स, ब्रैकेट (), [], सीन डिस्क्रिप्शन या नैरेटर टैग्स मत लिखो। सीधे कहानी और संवाद लिखो।
@@ -23,7 +22,7 @@ def generate_episode(prompt_text: str) -> str:
 
     full_prompt = f"{SYSTEM_PROMPT}\n\n[एपिसोड निर्देश]:\n{prompt_text}"
 
-    # Try Groq first
+    # Try Groq First
     if groq_api_key:
         try:
             client = Groq(api_key=groq_api_key)
@@ -39,12 +38,14 @@ def generate_episode(prompt_text: str) -> str:
         except Exception as e:
             print(f"Groq failed: {e}")
 
-    # Fallback to Gemini
+    # Fallback to New Gemini SDK (google-genai)
     if gemini_api_key:
         try:
-            genai.configure(api_key=gemini_api_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(full_prompt)
+            client = genai.Client(api_key=gemini_api_key)
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=full_prompt,
+            )
             if response and response.text:
                 return response.text
         except Exception as e:

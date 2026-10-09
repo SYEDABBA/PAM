@@ -23,13 +23,13 @@ def generate_episode(prompt_text: str) -> str:
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
     if not groq_api_key:
-        print("[Debug] GROQ_API_KEY is missing in Environment!", file=sys.stderr)
+        print("[DEBUG] GROQ_API_KEY is missing in Environment!", file=sys.stderr)
     if not gemini_api_key:
-        print("[Debug] GEMINI_API_KEY is missing in Environment!", file=sys.stderr)
+        print("[DEBUG] GEMINI_API_KEY is missing in Environment!", file=sys.stderr)
 
     full_prompt = f"{SYSTEM_PROMPT}\n\n[एपिसोड निर्देश]:\n{prompt_text}"
 
-    # Priority 1: Try Groq First
+    # Priority 1: Groq
     if groq_api_key:
         try:
             client = Groq(api_key=groq_api_key)
@@ -44,9 +44,9 @@ def generate_episode(prompt_text: str) -> str:
                 print("Successfully generated episode via Groq!")
                 return res.strip()
         except Exception as e:
-            print(f"[Error] Groq Failed: {e}", file=sys.stderr)
+            print(f"[DEBUG_ERROR] Groq API Failed: {e}", file=sys.stderr)
 
-    # Priority 2: Fallback to New Gemini SDK
+    # Priority 2: Gemini
     if gemini_api_key:
         try:
             client = genai.Client(api_key=gemini_api_key)
@@ -62,6 +62,6 @@ def generate_episode(prompt_text: str) -> str:
                 print("Successfully generated episode via Gemini!")
                 return response.text.strip()
         except Exception as e:
-            print(f"[Error] Gemini Failed: {e}", file=sys.stderr)
+            print(f"[DEBUG_ERROR] Gemini API Failed: {e}", file=sys.stderr)
 
-    raise RuntimeError("All AI models (Groq and Gemini) failed to generate episode. Check API Keys.")
+    raise RuntimeError("All AI models failed to generate episode.")

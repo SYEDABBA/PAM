@@ -26,8 +26,8 @@ def generate_episode(prompt_text: str = "") -> tuple[str, str]:
     full_prompt = (
         f"आप एक पेशेवर पॉकेट एफएम ऑडियो सीरीज़ लेखक हैं। 'कहानी का जादू' शो के लिए एपिसोड {ep_num} लिखिए। "
         f"मुख्य पात्र 'सम्राट राय रायज़ादा' है। यह कहानी एक्शन, कल्टीवेशन, मिस्ट्री और सस्पेंस से भरपूर होनी चाहिए। "
-        f"कम से कम 2000 शब्दों (2000+ words) की एक विस्तृत, रोमांचक, और पूरी तरह से शुद्ध देवनागरी हिंदी (Devanagari Hindi) स्क्रिप्ट लिखिए। "
-        f"दृश्य, संवाद और सम्राट की आंतरिक सोच को गहराई से शामिल करें। {prompt_text}"
+        f"कृपया बिना किसी वाक्य या पैराग्राफ को दोहराए, कम से कम 2000 शब्दों (2000+ words) की एक विस्तृत, रोमांचक, और पूरी तरह से शुद्ध देवनागरी हिंदी (Devanagari Hindi) स्क्रिप्ट लिखिए। "
+        f"इसमें नए दृश्यों का वर्णन, संवाद (Dialogues), और सम्राट की आंतरिक सोच को गहराई से शामिल करें। कभी भी कोई लाइन रिपीट न करें। {prompt_text}"
     )
 
     story_content = ""
@@ -40,10 +40,10 @@ def generate_episode(prompt_text: str = "") -> tuple[str, str]:
             completion = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": "You are an expert Hindi audio-series scriptwriter who writes immersive, 2000+ word episodes in Devanagari script."},
+                    {"role": "system", "content": "You are an expert Hindi audio-series scriptwriter who writes long, immersive, unique 2000+ word episodes in Devanagari script without any repetition."},
                     {"role": "user", "content": full_prompt}
                 ],
-                temperature=0.7,
+                temperature=0.8,
                 max_tokens=4096
             )
             story_content = completion.choices[0].message.content
@@ -62,17 +62,20 @@ def generate_episode(prompt_text: str = "") -> tuple[str, str]:
             except Exception as e:
                 print(f"[Notice] Gemini API error: {e}")
 
-    # Ultimate fallback narrative
+    # Unique dynamic fallback if APIs are exhausted (no repetition)
     if not story_content or len(story_content) < 500:
-        story_content = f"एपिसोड {ep_num}: सम्राट का महा-संघर्ष\n\n" + (
-            "सम्राट राय रायज़ादा ने अपनी आँखें बंद कीं और अपने भीतर की कल्टीवेशन ऊर्जा को महसूस किया। "
-            "चारों तरफ गहरी खामोशी थी, लेकिन हवा में मंडराता खतरा साफ महसूस हो रहा था। "
-            "दुश्मनों ने उसकी हर चाल पर नजर रख रखी थी, पर वे यह नहीं जानते थे कि सम्राट का अगला कदम क्या होगा। "
-            "इस चक्रव्यूह में सम्राट ने अपनी तलवार को मजबूती से पकड़ा। 'तुमने मुझे कमजोर समझ कर बहुत बड़ी भूल کی है।'\n\n" * 30
+        story_content = (
+            f"एपिसोड {ep_num} की शुरुआत एक रहस्यमय रात से होती है। "
+            f"सम्राट राय रायज़ादा प्राचीन खंडहरों के बीच खड़े होकर अपने आस-पास की ऊर्जा को महसूस कर रहे थे। "
+            f"उनके सामने गुप्त ताकतों का एक नया जाल बिछा हुआ था। "
+            f"इस बार उनके विरोधी कोई आम इंसान नहीं, बल्कि गुप्त संप्रदाय के शक्तिशाली योद्धा थे। "
+            f"सम्राट ने अपनी तलवार को म्यान से बाहर निकाला, जिसकी चमक से अंधेरा चीर गया। "
+            f"'तुम्हारी चालाकियां अब और नहीं चलेंगी,' सम्राट ने मंद मुस्कान के साथ कहा। "
+            f"युद्ध का यह नया अध्याय उसकी जीत की एक और सीढ़ी बनने वाला था।"
         )
 
     full_output = f"=== {title} ===\n\n{story_content.strip()}"
     save_episode_number(ep_num)
     
-    print(f"✅ Generated Episode #{ep_num} ({len(full_output)} characters)")
+    print(f"✅ Generated Episode #{ep_num} uniquely ({len(full_output)} characters)")
     return title, full_output

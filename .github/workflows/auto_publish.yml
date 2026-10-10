@@ -9,7 +9,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Gives repository write access to the GitHub Actions bot
+      contents: write
 
     steps:
       - name: Check out repository
@@ -33,6 +33,13 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           STORAGE_STATE_JSON: ${{ secrets.STORAGE_STATE_JSON }}
         run: python main.py
+
+      - name: Upload Diagnostic Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: "*.png"
 
       - name: Commit and Push Saved Work
         run: |

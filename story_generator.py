@@ -18,10 +18,17 @@ def generate_episode(prompt_text: str) -> str:
     groq_api_key = os.environ.get("GROQ_API_KEY")
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
+    # Force check what's going on
+    print(f"DEBUG_CHECK -> GROQ_API_KEY Length: {len(groq_api_key) if groq_api_key else 0}")
+    print(f"DEBUG_CHECK -> GEMINI_API_KEY Length: {len(gemini_api_key) if gemini_api_key else 0}")
+
+    if not groq_api_key and not gemini_api_key:
+        raise RuntimeError("CRITICAL: Both GROQ_API_KEY and GEMINI_API_KEY are missing from environment!")
+
     full_prompt = f"{SYSTEM_PROMPT}\n\n[Topic / Instructions]:\n{prompt_text}"
 
     # Try Gemini First
-    if gemini_api_key:
+    if gemini_api_key and len(gemini_api_key.strip()) > 5:
         for model_name in ["gemini-2.5-flash", "gemini-1.5-flash"]:
             try:
                 client = genai.Client(api_key=gemini_api_key)
@@ -37,10 +44,10 @@ def generate_episode(prompt_text: str) -> str:
                     print(f"Successfully generated episode via Gemini ({model_name})!")
                     return response.text.strip()
             except Exception as e:
-                print(f"GEMINI_CRITICAL_ERROR_{model_name}: {repr(e)}", file=sys.stderr)
+                print(f"GEMINI_ERROR_{model_name}: {repr(e)}", file=sys.stderr)
 
     # Fallback to Groq
-    if groq_api_key:
+    if groq_api_key and len(groq_api_key.strip()) > 5:
         try:
             client = Groq(api_key=groq_api_key)
             completion = client.chat.completions.create(
@@ -54,6 +61,6 @@ def generate_episode(prompt_text: str) -> str:
                 print("Successfully generated episode via Groq!")
                 return res.strip()
         except Exception as e:
-            print(f"GROQ_CRITICAL_ERROR: {repr(e)}", file=sys.stderr)
+            print(f"GROQ_ERROR: {repr(e)}", file=sys.stderr)
 
-    raise RuntimeError("All AI models failed. Check standard error logs above for exact reason.")
+    raise RuntimeError("All AI models execution failed or keys were invalid.")

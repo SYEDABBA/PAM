@@ -8,15 +8,15 @@ SHERPA_DASHBOARD = "https://sherpa.pocketfm.com/"
 def post_to_sherpa(title: str, content: str):
     storage_state_env = os.environ.get("STORAGE_STATE_JSON")
     
-    # Always save locally as primary safety backup
+    # Always save locally in 'my work/' folder as primary guaranteed backup
     os.makedirs("my work", exist_ok=True)
     file_path = os.path.join("my work", f"{title}.txt")
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
-    print(f"📁 Story successfully saved locally at: {file_path}")
+    print(f"📁 Story safely saved locally at: {file_path}")
 
     if not storage_state_env:
-        print("[WARNING] STORAGE_STATE_JSON secret is missing.")
+        print("[WARNING] STORAGE_STATE_JSON secret is missing. Skipping browser automation.")
         return
 
     state_file = "state.json"
@@ -35,14 +35,13 @@ def post_to_sherpa(title: str, content: str):
 
             print("Navigating to Sherpa Dashboard...")
             page.goto(SHERPA_DASHBOARD, timeout=50000)
-            page.wait_for_timeout(4000)
+            page.wait_for_timeout(3000)
 
             print(f"Targeting show URL: {SHOW_URL}")
             page.goto(SHOW_URL, timeout=50000)
-            page.wait_for_timeout(6000)
+            page.wait_for_timeout(4000)
 
-            print("Attempting to trigger '+ New episode' via JavaScript...")
-            # JavaScript evaluation to find and click the button containing "+ New episode"
+            print("Attempting automated JS interaction...")
             clicked = page.evaluate("""() => {
                 const buttons = Array.from(document.querySelectorAll('button, div, span, a'));
                 const target = buttons.find(el => el.textContent && el.textContent.includes('+ New episode'));
@@ -54,28 +53,14 @@ def post_to_sherpa(title: str, content: str):
             }""")
 
             if clicked:
-                print("Successfully clicked 'New Episode' button via JS!")
-                page.wait_for_timeout(4000)
-
-                print("Filling title and content...")
+                print("Clicked 'New Episode' successfully via JS!")
+                page.wait_for_timeout(3000)
                 page.locator("input[type='text']").first.fill(title)
                 page.locator("textarea").first.fill(content)
                 page.wait_for_timeout(2000)
-
-                print("Submitting episode...")
-                page.evaluate("""() => {
-                    const buttons = Array.from(document.querySelectorAll('button'));
-                    const pubBtn = buttons.find(el => el.textContent && el.textContent.toLowerCase().includes('publish'));
-                    if (pubBtn) {
-                        pubBtn.click();
-                        return true;
-                    }
-                    return false;
-                }""")
-                page.wait_for_timeout(5000)
-                print("Episode submission command executed!")
+                print("Episode details populated.")
             else:
-                print("[INFO] Could not locate New Episode button automatically. Saved locally for easy manual push.")
+                print("[INFO] Automation click skipped by security/UI state. File is safely stored in repository.")
 
             browser.close()
         except Exception as e:

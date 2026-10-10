@@ -2,7 +2,7 @@ name: Publish Episode
 
 on:
   schedule:
-    - cron: '*/10 * * * *'  # Runs automatically every 10 minutes
+    - cron: '*/10 * * * *'  # Automatically runs every 10 minutes
   workflow_dispatch:
 
 jobs:
@@ -31,6 +31,7 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           STORAGE_STATE_JSON: ${{ secrets.STORAGE_STATE_JSON }}
         run: python main.py
 
@@ -39,4 +40,4 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git diff-index --quiet HEAD || (git commit -m "Auto-generate 10-min interval episode" && git push)
+          git diff-index --quiet HEAD || (git commit -m "Auto-generate 10-min episode" && git push)

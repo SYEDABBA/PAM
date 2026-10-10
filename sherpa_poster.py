@@ -10,14 +10,12 @@ def post_to_sherpa(title: str, content: str):
     if not storage_state_env:
         raise ValueError("STORAGE_STATE_JSON secret is missing in GitHub Secrets!")
 
-    # Write the secret directly to a state.json file to avoid type/path errors
     state_file = "state.json"
     with open(state_file, "w", encoding="utf-8") as f:
         f.write(storage_state_env)
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        # Pass the file path string directly
         context = browser.new_context(storage_state=state_file)
         page = context.new_page()
 
@@ -28,30 +26,57 @@ def post_to_sherpa(title: str, content: str):
         print(f"Targeting specific show: {SHOW_URL}")
         page.goto(SHOW_URL, timeout=60000)
         page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(5000) # Wait for UI elements to load fully
 
-        print("Looking for 'New Episode' or publish button...")
+        print("Attempting to find and click 'New Episode' button...")
         try:
-            new_ep_btn = page.locator("text=New Episode")
-            if new_ep_btn.count() > 0:
-                new_ep_btn.first.click()
-                page.wait_for_timeout(3000)
+            # Try multiple common button identifiers for Sherpa/Pocket FM
+            btn_selectors = [
+                "text=New Episode",
+                "text=नया एपिसोड",
+                "button:has-text('Episode')",
+                "a:has-text('Episode')",
+                "[class*='create']",
+                "[class*='episode']"
+            ]
+            
+            clicked = False
+            for selector in btn_selectors:
+                element = page.locator(selector)
+                if element.count() > 0:
+                    print(f"Found element with selector: {selector}")
+                    element.first.click()
+                    clicked = True
+                    break
+            
+            if not clicked:
+                print("Could not find direct button, trying to navigate via URL pattern if available...")
+                # Fallback: log page text to help identify
+                print(f"Current Page URL: {page.url}")
+
+            page.wait_for_timeout(3000)
             
             print("Filling episode details...")
-            page.fill("input[placeholder*='Episode Title']", title)
-            page.fill("textarea[placeholder*='Episode Content']", content)
+            # Universal selectors for text inputs and textareas
+            page.fill("input[type='text']", title)
+            page.fill("textarea", content)
             
-            submit_btn = page.locator("text=Publish")
-            if submit_btn.count() > 0:
-                submit_btn.first.click()
-                print("Episode successfully published to Sherpa!")
-            else:
-                print("Publish button not found, saving locally as backup.")
-        
+            print("Looking for publish/submit button...")
+            submit_selectors = ["text=Publish", "text=पब्लिश", "button[type='submit']"]
+            for sub_sel in submit_selectors:
+                sub_btn = page.locator(sub_sel)
+                if sub_btn.count() > 0:
+                    sub_btn.first.click()
+                    print("Episode successfully submitted for publishing!")
+                    break
+            
+            page.wait_for_timeout(5000)
+
         except Exception as e:
             print(f"Automation notice during publishing: {e}")
             os.makedirs("my work", exist_ok=True)
             with open(f"my work/{title}.txt", "w", encoding="utf-8") as file_out:
                 file_out.write(content)
-            print("Story saved safely to 'my work/' folder.")
+            print("Story saved safely to 'my work/' folder as backup.")
 
         browser.close()

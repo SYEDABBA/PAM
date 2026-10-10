@@ -6,7 +6,6 @@ from groq import Groq
 
 SYSTEM_PROMPT = """You are a professional Hindi story writer for Pocket FM.
 Write an engaging audio story episode in pure Devanagari Hindi.
-
 Rules:
 1. Write 100% pure Devanagari Hindi text only.
 2. Absolutely NO English words, NO Roman letters (A-Z).
@@ -19,8 +18,8 @@ def generate_episode(prompt_text: str) -> str:
     groq_api_key = os.environ.get("GROQ_API_KEY")
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
-    if not groq_api_key and not gemini_api_key:
-        print("[ERROR] Neither GROQ_API_KEY nor GEMINI_API_KEY found in environment variables!", file=sys.stderr)
+    print(f"[INFO] GROQ_API_KEY present: {bool(groq_api_key)}")
+    print(f"[INFO] GEMINI_API_KEY present: {bool(gemini_api_key)}")
 
     full_prompt = f"{SYSTEM_PROMPT}\n\n[Topic / Instructions]:\n{prompt_text}"
 
@@ -28,6 +27,7 @@ def generate_episode(prompt_text: str) -> str:
     if gemini_api_key:
         for model_name in ["gemini-2.5-flash", "gemini-1.5-flash"]:
             try:
+                print(f"[INFO] Trying Gemini model: {model_name}")
                 client = genai.Client(api_key=gemini_api_key)
                 response = client.models.generate_content(
                     model=model_name,
@@ -37,15 +37,16 @@ def generate_episode(prompt_text: str) -> str:
                         max_output_tokens=4096
                     )
                 )
-                if response and response.text and len(response.text.strip()) > 100:
+                if response and response.text and len(response.text.strip()) > 50:
                     print(f"Successfully generated episode via Gemini ({model_name})!")
                     return response.text.strip()
             except Exception as e:
-                print(f"[DEBUG_ERROR] Gemini API ({model_name}) Failed: {e}", file=sys.stderr)
+                print(f"[WARNING] Gemini API ({model_name}) Error: {e}", file=sys.stderr)
 
     # Fallback to Groq
     if groq_api_key:
         try:
+            print("[INFO] Trying Groq model: llama-3.3-70b-versatile")
             client = Groq(api_key=groq_api_key)
             completion = client.chat.completions.create(
                 messages=[{"role": "user", "content": full_prompt}],
@@ -54,10 +55,10 @@ def generate_episode(prompt_text: str) -> str:
                 max_tokens=4096
             )
             res = completion.choices[0].message.content
-            if res and len(res.strip()) > 100:
+            if res and len(res.strip()) > 50:
                 print("Successfully generated episode via Groq!")
                 return res.strip()
         except Exception as e:
-            print(f"[DEBUG_ERROR] Groq API Failed: {e}", file=sys.stderr)
+            print(f"[WARNING] Groq API Error: {e}", file=sys.stderr)
 
     raise RuntimeError("All AI models (Gemini and Groq) failed to generate episode.")

@@ -16,45 +16,53 @@ def post_to_sherpa(title: str, content: str):
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(storage_state=state_file)
+        context = browser.new_context(
+            storage_state=state_file,
+            viewport={"width": 1280, "height": 720},
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
         page = context.new_page()
 
         print("Navigating to Sherpa Dashboard...")
         page.goto(SHERPA_DASHBOARD, timeout=60000)
-        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(4000)
+
+        # Save diagnostic screenshot 1
+        page.screenshot(path="step1_dashboard.png")
 
         print(f"Targeting show URL: {SHOW_URL}")
         page.goto(SHOW_URL, timeout=60000)
-        page.wait_for_load_state("networkidle")
         page.wait_for_timeout(5000)
 
-        print("Clicking '+ New episode' button...")
-        try:
-            # Exact selector based on the Sherpa UI screenshot
-            page.locator("text=+ New episode").first.click()
+        # Save diagnostic screenshot 2
+        page.screenshot(path="step2_showpage.png")
+
+        print("Searching for '+ New episode' button...")
+        # Check if button exists
+        new_ep_btn = page.get_by_text("+ New episode", exact=False)
+        
+        if new_ep_btn.count() > 0:
+            print("Found button! Clicking now...")
+            new_ep_btn.first.click()
             page.wait_for_timeout(4000)
+            page.screenshot(path="step3_form.png")
 
-            print("Filling episode title and content...")
-            # Fill inputs found on the popup/new episode page
-            page.fill("input[type='text']", title)
-            page.fill("textarea", content)
-            
-            print("Submitting/Publishing episode...")
-            # Click submit or publish button
-            publish_btn = page.locator("button:has-text('Publish'), button:has-text('Submit'), text=Publish")
-            if publish_btn.count() > 0:
-                publish_btn.first.click()
-                print("Episode successfully published to Pocket FM!")
+            print("Filling inputs...")
+            page.locator("input").first.fill(title)
+            page.locator("textarea").first.fill(content)
+            page.screenshot(path="step4_filled.png")
+
+            print("Publishing...")
+            pub_btn = page.get_by_text("Publish", exact=False)
+            if pub_btn.count() > 0:
+                pub_btn.first.click()
+                page.wait_for_timeout(5000)
+                print("Episode published successfully!")
             else:
-                print("Publish button selector not matched, saving draft state.")
-            
-            page.wait_for_timeout(5000)
-
-        except Exception as e:
-            print(f"Automation execution notice: {e}")
-            os.makedirs("my work", exist_ok=True)
-            with open(f"my work/{title}.txt", "w", encoding="utf-8") as f:
-                f.write(content)
-            print("Content safely backed up in local 'my work/' folder.")
+                print("Publish button not found after filling form.")
+        else:
+            print("[ERROR] '+ New episode' button not visible on page!")
+            page.screenshot(path="error_nobutton.png")
+            raise RuntimeError("Automated click failed: '+ New episode' button was not interactable. Check generated screenshots.")
 
         browser.close()

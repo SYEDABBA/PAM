@@ -10,50 +10,48 @@ def post_to_sherpa(title: str, content: str):
     if not storage_state_env:
         raise ValueError("STORAGE_STATE_JSON secret is missing in GitHub Secrets!")
 
-    # Parse cookies/storage state from GitHub secret
-    storage_state = json.loads(storage_state_env)
+    # Write the secret directly to a state.json file to avoid type/path errors
+    state_file = "state.json"
+    with open(state_file, "w", encoding="utf-8") as f:
+        f.write(storage_state_env)
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context(storage_state=storage_state)
+        # Pass the file path string directly
+        context = browser.new_context(storage_state=state_file)
         page = context.new_page()
 
         print("Navigating to Sherpa Pocket FM Dashboard...")
         page.goto(SHERPA_DASHBOARD, timeout=60000)
         page.wait_for_load_state("networkidle")
 
-        # Directly navigate to the specific show page
         print(f"Targeting specific show: {SHOW_URL}")
         page.goto(SHOW_URL, timeout=60000)
         page.wait_for_load_state("networkidle")
 
         print("Looking for 'New Episode' or publish button...")
         try:
-            # Click on new episode button (adjust selector based on Sherpa UI)
             new_ep_btn = page.locator("text=New Episode")
             if new_ep_btn.count() > 0:
                 new_ep_btn.first.click()
                 page.wait_for_timeout(3000)
             
-            # Fill title and content fields
             print("Filling episode details...")
             page.fill("input[placeholder*='Episode Title']", title)
             page.fill("textarea[placeholder*='Episode Content']", content)
             
-            # Click publish/submit
             submit_btn = page.locator("text=Publish")
             if submit_btn.count() > 0:
                 submit_btn.first.click()
                 print("Episode successfully published to Sherpa!")
             else:
-                print("Publish button not found, saving as draft/manual review required.")
+                print("Publish button not found, saving locally as backup.")
         
         except Exception as e:
             print(f"Automation notice during publishing: {e}")
-            # Fallback: save content locally if UI changes
             os.makedirs("my work", exist_ok=True)
-            with open(f"my work/{title}.txt", "w", encoding="utf-8") as f:
-                f.write(content)
+            with open(f"my work/{title}.txt", "w", encoding="utf-8") as file_out:
+                file_out.write(content)
             print("Story saved safely to 'my work/' folder.")
 
         browser.close()

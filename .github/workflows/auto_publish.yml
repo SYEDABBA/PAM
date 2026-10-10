@@ -8,6 +8,8 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Gives repository write access to the GitHub Actions bot
 
     steps:
       - name: Check out repository

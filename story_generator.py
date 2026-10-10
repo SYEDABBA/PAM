@@ -18,16 +18,12 @@ def generate_episode(prompt_text: str) -> str:
     groq_api_key = os.environ.get("GROQ_API_KEY")
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
-    print(f"[INFO] GROQ_API_KEY present: {bool(groq_api_key)}")
-    print(f"[INFO] GEMINI_API_KEY present: {bool(gemini_api_key)}")
-
     full_prompt = f"{SYSTEM_PROMPT}\n\n[Topic / Instructions]:\n{prompt_text}"
 
     # Try Gemini First
     if gemini_api_key:
         for model_name in ["gemini-2.5-flash", "gemini-1.5-flash"]:
             try:
-                print(f"[INFO] Trying Gemini model: {model_name}")
                 client = genai.Client(api_key=gemini_api_key)
                 response = client.models.generate_content(
                     model=model_name,
@@ -41,12 +37,11 @@ def generate_episode(prompt_text: str) -> str:
                     print(f"Successfully generated episode via Gemini ({model_name})!")
                     return response.text.strip()
             except Exception as e:
-                print(f"[WARNING] Gemini API ({model_name}) Error: {e}", file=sys.stderr)
+                print(f"GEMINI_CRITICAL_ERROR_{model_name}: {repr(e)}", file=sys.stderr)
 
     # Fallback to Groq
     if groq_api_key:
         try:
-            print("[INFO] Trying Groq model: llama-3.3-70b-versatile")
             client = Groq(api_key=groq_api_key)
             completion = client.chat.completions.create(
                 messages=[{"role": "user", "content": full_prompt}],
@@ -59,6 +54,6 @@ def generate_episode(prompt_text: str) -> str:
                 print("Successfully generated episode via Groq!")
                 return res.strip()
         except Exception as e:
-            print(f"[WARNING] Groq API Error: {e}", file=sys.stderr)
+            print(f"GROQ_CRITICAL_ERROR: {repr(e)}", file=sys.stderr)
 
-    raise RuntimeError("All AI models (Gemini and Groq) failed to generate episode.")
+    raise RuntimeError("All AI models failed. Check standard error logs above for exact reason.")
